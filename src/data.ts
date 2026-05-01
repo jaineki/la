@@ -20,7 +20,7 @@ export const PROJECTS: ProjectData[] = [
     badge: 'LIVE',
   },
   {
-    href:  'https://shareseloc.onrender.com',
+    href:  'https://shareselov.onrender.com',
     icon:  'fas fa-share-alt',
     title: 'AUTO SHARE BOOST',
     sub:   'viral acceleration',

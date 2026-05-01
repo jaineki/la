@@ -12,6 +12,7 @@ export function initTypewriter(): void {
 
   function tick(): void {
     const word = TYPEWRITER_PHRASES[phraseIndex];
+    if (!word) return;
 
     if (!deleting) {
       el.innerHTML = word.slice(0, charIndex + 1) + '<span class="cursor-blink">|</span>';

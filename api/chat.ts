@@ -48,12 +48,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
       status: true,
       response:  data.response ?? data.reply ?? "I couldn't process that request.",
       operator:  data.operator ?? 'JayBohol',
-      system:    'SECURED SELOV-API',
+      system:    'SELOV-Portfolio',
       timestamp: new Date().toISOString(),
     });
-  } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : 'Unknown error';
-    console.error('Proxy Error:', message);
+  } catch (err: unknown) {
+  removeTyping();
+  const msg = err instanceof Error ? err.message : 'Unknown error';
+  appendBubble(`⚠️ ${msg}`, false);
+  }
 
     res.status(500).json({
       status: false,

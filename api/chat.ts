@@ -1,6 +1,3 @@
-// api/chat.ts — Vercel Serverless Function (replaces the Express /api/chat route)
-// Vercel auto-routes this to GET /api/chat
-
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
 const EXTERNAL_API_URL = 'https://pasayloakomego.onrender.com/api/toolbot';
@@ -12,9 +9,9 @@ interface ExternalApiResponse {
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse): Promise<void> {
-  // CORS headers
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
   if (req.method === 'OPTIONS') {
     res.status(200).end();
@@ -33,10 +30,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
     return;
   }
 
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 15000);
+
   try {
     const upstream = await fetch(
       `${EXTERNAL_API_URL}?query=${encodeURIComponent(userQuery)}`,
+      { signal: controller.signal },
     );
+    clearTimeout(timeout);
 
     if (!upstream.ok) {
       throw new Error(`External API responded with status ${upstream.status}`);
@@ -51,16 +53,21 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
       system:    'SELOV-Portfolio',
       timestamp: new Date().toISOString(),
     });
-  } catch (err: unknown) {
-  removeTyping();
-  const msg = err instanceof Error ? err.message : 'Unknown error';
-  appendBubble(`⚠️ ${msg}`, false);
-  }
+
+  } catch (error: unknown) {
+    clearTimeout(timeout);
+
+    const isTimeout = error instanceof Error && error.name === 'AbortError';
+    const message   = isTimeout ? 'Request timed out' : (error instanceof Error ? error.message : 'Unknown error');
+
+    console.error('Proxy Error:', message);
 
     res.status(500).json({
       status: false,
-      error: 'AI service temporarily unavailable',
-      response: "Sorry, I'm having trouble connecting right now. Please try again in a moment.",
+      error: message,
+      response: isTimeout
+        ? 'The AI is waking up, please try again in a few seconds.'
+        : "Sorry, I'm having trouble connecting right now. Please try again.",
     });
   }
 }

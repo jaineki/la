@@ -1,9 +1,7 @@
-// typewriter.ts — Typewriter subtitle animation
-
 import { TYPEWRITER_PHRASES } from './data';
 
 export function initTypewriter(): void {
-  const el = document.getElementById('subtypeEl');
+  const el = document.getElementById('subtypeEl') as HTMLElement;
   if (!el) return;
 
   let phraseIndex = 0;

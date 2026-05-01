@@ -1,5 +1,3 @@
-// chat.ts — Main AI chat + support chat logic
-
 import { API_BASE_URL } from './data';
 import type { ChatApiResponse } from './types';
 
@@ -11,9 +9,9 @@ async function fetchAI(query: string): Promise<string> {
 }
 
 export function initMainChat(): void {
-  const container = document.getElementById('chatMessagesContainer');
-  const input     = document.getElementById('chatInputField') as HTMLInputElement | null;
-  const sendBtn   = document.getElementById('sendChatBtn') as HTMLButtonElement | null;
+  const container = document.getElementById('chatMessagesContainer') as HTMLElement;
+  const input     = document.getElementById('chatInputField') as HTMLInputElement;
+  const sendBtn   = document.getElementById('sendChatBtn') as HTMLButtonElement;
   if (!container || !input || !sendBtn) return;
 
   let typingEl: HTMLElement | null = null;
@@ -69,11 +67,11 @@ export function initMainChat(): void {
 }
 
 export function initSupportChat(): void {
-  const messagesEl = document.getElementById('supportMessages');
-  const inputEl    = document.getElementById('supportInput') as HTMLInputElement | null;
-  const sendEl     = document.getElementById('supportSend') as HTMLButtonElement | null;
-  const btnEl      = document.getElementById('supportBtn');
-  const boxEl      = document.getElementById('supportBox');
+  const messagesEl = document.getElementById('supportMessages') as HTMLElement;
+  const inputEl    = document.getElementById('supportInput') as HTMLInputElement;
+  const sendEl     = document.getElementById('supportSend') as HTMLButtonElement;
+  const btnEl      = document.getElementById('supportBtn') as HTMLElement;
+  const boxEl      = document.getElementById('supportBox') as HTMLElement;
 
   if (!messagesEl || !inputEl || !sendEl || !btnEl || !boxEl) return;
 
@@ -119,7 +117,7 @@ export function initSupportChat(): void {
 export async function checkBackend(): Promise<void> {
   try {
     const res = await fetch(`${API_BASE_URL}/health`);
-    console.log(res.ok ? '✅ Backend connected' : '⚠️ Backend responded but no health endpoint');
+    console.log(res.ok ? '✅ Backend connected' : '⚠️ No health endpoint');
   } catch {
     console.error('❌ Backend not reachable.');
   }

@@ -1,76 +1,121 @@
-import type { VercelRequest, VercelResponse } from '@vercel/node';
+import { API_BASE_URL } from './data';
+import type { ChatApiResponse } from './types';
 
-const EXTERNAL_API_URL = 'https://pasayloakomego.onrender.com/api/toolbot';
+async function fetchAI(query: string): Promise<string> {
+  const res = await fetch(`${API_BASE_URL}/chat?query=${encodeURIComponent(query)}`);
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const data: ChatApiResponse = await res.json();
+  return data.response ?? data.reply ?? "I couldn't process that request.";
+}
 
-export default async function handler(req: VercelRequest, res: VercelResponse): Promise<void> {
-  // CORS headers
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+export function initMainChat(): void {
+  const container = document.getElementById('chatMessagesContainer') as HTMLElement;
+  const input     = document.getElementById('chatInputField') as HTMLInputElement;
+  const sendBtn   = document.getElementById('sendChatBtn') as HTMLButtonElement;
+  if (!container || !input || !sendBtn) return;
 
-  if (req.method === 'OPTIONS') {
-    res.status(200).end();
-    return;
+  let typingEl: HTMLElement | null = null;
+
+  function appendBubble(text: string, isUser: boolean): void {
+    const div = document.createElement('div');
+    div.className = isUser ? 'bubble user-bubble' : 'bubble ai-bubble';
+    div.textContent = text;
+    container.appendChild(div);
+    div.scrollIntoView({ behavior: 'smooth', block: 'end' });
   }
 
-  const userQuery = (req.query['query'] as string | undefined)
-                 ?? (req.query['q'] as string | undefined)
-                 ?? '';
-
-  if (!userQuery.trim()) {
-    res.status(400).json({
-      status: false,
-      error: 'Missing query parameter.',
-    });
-    return;
+  function showTyping(): void {
+    typingEl?.remove();
+    typingEl = document.createElement('div');
+    typingEl.className = 'bubble ai-bubble';
+    typingEl.innerHTML = '<div class="typing-dots"><span></span><span></span><span></span></div>';
+    container.appendChild(typingEl);
+    typingEl.scrollIntoView({ behavior: 'smooth', block: 'end' });
   }
 
-  // Abort controller — 15 second timeout (Render free tier is slow to wake)
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 15000);
+  function removeTyping(): void {
+    typingEl?.remove();
+    typingEl = null;
+  }
 
-  try {
-    const upstream = await fetch(
-      `${EXTERNAL_API_URL}?query=${encodeURIComponent(userQuery)}`,
-      { signal: controller.signal },
-    );
-    clearTimeout(timeout);
-
-    if (!upstream.ok) {
-      throw new Error(`External API responded with status ${upstream.status}`);
+  async function send(): Promise<void> {
+    const msg = input.value.trim();
+    if (!msg) return;
+    input.disabled = true;
+    sendBtn.disabled = true;
+    appendBubble(msg, true);
+    input.value = '';
+    showTyping();
+    try {
+      const reply = await fetchAI(msg);
+      removeTyping();
+      appendBubble(reply, false);
+    } catch (err: unknown) {
+      removeTyping();
+      const errMsg = err instanceof Error ? err.message : 'Unknown error';
+      appendBubble(`⚠️ ${errMsg}`, false);
+    } finally {
+      input.disabled = false;
+      sendBtn.disabled = false;
+      input.focus();
     }
-
-    const data = await upstream.json() as {
-      response?: string;
-      reply?: string;
-      operator?: string;
-    };
-
-    res.status(200).json({
-      status: true,
-      response:  data.response ?? data.reply ?? "I couldn't process that request.",
-      operator:  data.operator ?? 'JayBohol',
-      system:    'SELOV-Portfolio',
-      timestamp: new Date().toISOString(),
-    });
-
-  } catch (err: unknown) {
-  removeTyping();
-  const msg = err instanceof Error ? err.message : 'Unknown error';
-  appendBubble(`⚠️ ${msg}`, false);
   }
 
-    const isTimeout = error instanceof Error && error.name === 'AbortError';
-    const message   = isTimeout ? 'Request timed out' : (error instanceof Error ? error.message : 'Unknown error');
+  sendBtn.addEventListener('click', e => { e.stopPropagation(); void send(); });
+  input.addEventListener('keypress', e => { if (e.key === 'Enter') { e.preventDefault(); void send(); } });
+}
 
-    console.error('Proxy Error:', message);
+export function initSupportChat(): void {
+  const messagesEl = document.getElementById('supportMessages') as HTMLElement;
+  const inputEl    = document.getElementById('supportInput') as HTMLInputElement;
+  const sendEl     = document.getElementById('supportSend') as HTMLButtonElement;
+  const btnEl      = document.getElementById('supportBtn') as HTMLElement;
+  const boxEl      = document.getElementById('supportBox') as HTMLElement;
+  if (!messagesEl || !inputEl || !sendEl || !btnEl || !boxEl) return;
 
-    res.status(500).json({
-      status: false,
-      error: message,
-      response: isTimeout
-        ? 'The AI is waking up from sleep, please try again in a few seconds.'
-        : "Sorry, I'm having trouble connecting right now. Please try again.",
-    });
+  btnEl.addEventListener('click', () => boxEl.classList.toggle('open'));
+
+  function addMsg(text: string, fromUser: boolean): void {
+    const wrap = document.createElement('div');
+    wrap.style.cssText = `margin:3px 0;text-align:${fromUser ? 'right' : 'left'}`;
+    const span = document.createElement('span');
+    span.style.cssText = `background:${fromUser ? '#0084ff' : '#1a1f2e'};padding:8px 12px;border-radius:10px;display:inline-block;word-break:break-word;max-width:85%;font-size:.82rem;`;
+    span.textContent = text;
+    wrap.appendChild(span);
+    messagesEl.appendChild(wrap);
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+  }
+
+  async function sendSupport(): Promise<void> {
+    const msg = inputEl.value.trim();
+    if (!msg) return;
+    addMsg(msg, true);
+    inputEl.value = '';
+    const typingWrap = document.createElement('div');
+    typingWrap.style.cssText = 'margin:3px 0;text-align:left';
+    typingWrap.innerHTML = '<span style="background:#1a1f2e;padding:8px 12px;border-radius:10px;display:inline-block;font-size:.8rem;"><em>Typing...</em></span>';
+    messagesEl.appendChild(typingWrap);
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+    try {
+      const reply = await fetchAI(msg);
+      typingWrap.remove();
+      addMsg(reply, false);
+    } catch (err: unknown) {
+      typingWrap.remove();
+      const errMsg = err instanceof Error ? err.message : 'Unknown error';
+      addMsg(`⚠️ ${errMsg}`, false);
+    }
+  }
+
+  sendEl.addEventListener('click', () => { void sendSupport(); });
+  inputEl.addEventListener('keypress', e => { if (e.key === 'Enter') void sendSupport(); });
+}
+
+export async function checkBackend(): Promise<void> {
+  try {
+    const res = await fetch(`${API_BASE_URL}/health`);
+    console.log(res.ok ? '✅ Backend connected' : '⚠️ No health endpoint');
+  } catch {
+    console.error('❌ Backend not reachable.');
   }
 }

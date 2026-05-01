@@ -3,12 +3,6 @@
 import { API_BASE_URL } from './data';
 import type { ChatApiResponse } from './types';
 
-// ─── Shared helpers ────────────────────────────────────────────
-
-function escapeHtml(str: string): string {
-  return str.replace(/[&<>]/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[m] ?? m));
-}
-
 async function fetchAI(query: string): Promise<string> {
   const res = await fetch(`${API_BASE_URL}/chat?query=${encodeURIComponent(query)}`);
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -16,23 +10,20 @@ async function fetchAI(query: string): Promise<string> {
   return data.response ?? data.reply ?? "I couldn't process that request.";
 }
 
-// ─── MAIN CHAT ─────────────────────────────────────────────────
-
 export function initMainChat(): void {
-  const container = document.getElementById('chatMessagesContainer') as HTMLElement | null;
+  const container = document.getElementById('chatMessagesContainer');
   const input     = document.getElementById('chatInputField') as HTMLInputElement | null;
   const sendBtn   = document.getElementById('sendChatBtn') as HTMLButtonElement | null;
   if (!container || !input || !sendBtn) return;
 
   let typingEl: HTMLElement | null = null;
 
-  function appendBubble(text: string, isUser: boolean): HTMLElement {
+  function appendBubble(text: string, isUser: boolean): void {
     const div = document.createElement('div');
     div.className = isUser ? 'bubble user-bubble' : 'bubble ai-bubble';
     div.textContent = text;
     container.appendChild(div);
     div.scrollIntoView({ behavior: 'smooth', block: 'end' });
-    return div;
   }
 
   function showTyping(): void {
@@ -65,7 +56,7 @@ export function initMainChat(): void {
       appendBubble(reply, false);
     } catch {
       removeTyping();
-      appendBubble('⚠️ Cannot connect to AI service. Make sure the backend is running.', false);
+      appendBubble('⚠️ Cannot connect to AI service.', false);
     } finally {
       input.disabled = false;
       sendBtn.disabled = false;
@@ -77,30 +68,22 @@ export function initMainChat(): void {
   input.addEventListener('keypress', e => { if (e.key === 'Enter') { e.preventDefault(); void send(); } });
 }
 
-// ─── SUPPORT CHAT ──────────────────────────────────────────────
-
 export function initSupportChat(): void {
-  const messagesEl = document.getElementById('supportMessages') as HTMLElement | null;
+  const messagesEl = document.getElementById('supportMessages');
   const inputEl    = document.getElementById('supportInput') as HTMLInputElement | null;
   const sendEl     = document.getElementById('supportSend') as HTMLButtonElement | null;
-  const btnEl      = document.getElementById('supportBtn') as HTMLElement | null;
-  const boxEl      = document.getElementById('supportBox') as HTMLElement | null;
+  const btnEl      = document.getElementById('supportBtn');
+  const boxEl      = document.getElementById('supportBox');
 
   if (!messagesEl || !inputEl || !sendEl || !btnEl || !boxEl) return;
 
-  // Toggle open/close
   btnEl.addEventListener('click', () => boxEl.classList.toggle('open'));
 
   function addMsg(text: string, fromUser: boolean): void {
     const wrap = document.createElement('div');
     wrap.style.cssText = `margin:3px 0;text-align:${fromUser ? 'right' : 'left'}`;
     const span = document.createElement('span');
-    span.style.cssText = `
-      background:${fromUser ? '#0084ff' : '#1a1f2e'};
-      padding:8px 12px; border-radius:10px;
-      display:inline-block; word-break:break-word;
-      max-width:85%; font-size:.82rem;
-    `;
+    span.style.cssText = `background:${fromUser ? '#0084ff' : '#1a1f2e'};padding:8px 12px;border-radius:10px;display:inline-block;word-break:break-word;max-width:85%;font-size:.82rem;`;
     span.textContent = text;
     wrap.appendChild(span);
     messagesEl.appendChild(wrap);
@@ -110,11 +93,9 @@ export function initSupportChat(): void {
   async function sendSupport(): Promise<void> {
     const msg = inputEl.value.trim();
     if (!msg) return;
-
     addMsg(msg, true);
     inputEl.value = '';
 
-    // Typing indicator
     const typingWrap = document.createElement('div');
     typingWrap.style.cssText = 'margin:3px 0;text-align:left';
     typingWrap.innerHTML = '<span style="background:#1a1f2e;padding:8px 12px;border-radius:10px;display:inline-block;font-size:.8rem;"><em>Typing...</em></span>';
@@ -135,17 +116,11 @@ export function initSupportChat(): void {
   inputEl.addEventListener('keypress', e => { if (e.key === 'Enter') void sendSupport(); });
 }
 
-// ─── Health check ──────────────────────────────────────────────
-
 export async function checkBackend(): Promise<void> {
   try {
     const res = await fetch(`${API_BASE_URL}/health`);
-    if (res.ok) {
-      console.log('✅ Backend connected');
-    } else {
-      console.warn('⚠️ Backend responded but no health endpoint');
-    }
+    console.log(res.ok ? '✅ Backend connected' : '⚠️ Backend responded but no health endpoint');
   } catch {
-    console.error('❌ Backend not reachable. Run: node server.js');
+    console.error('❌ Backend not reachable.');
   }
 }

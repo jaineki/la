@@ -13,14 +13,14 @@ export const SKILLS: SkillData[] = [
 
 export const PROJECTS: ProjectData[] = [
   {
-    href:  'https://autobot-2026-8ba9.onrender.com',
+    href:  'https://autobotnsekako.onrender.com/',
     icon:  'fas fa-robot',
     title: 'AUTOBOT · AI AUTOMATION',
     sub:   'smart reply engine',
     badge: 'LIVE',
   },
   {
-    href:  'https://kurapika-dzvw.onrender.com/',
+    href:  'https://shareseloc.onrender.com',
     icon:  'fas fa-share-alt',
     title: 'AUTO SHARE BOOST',
     sub:   'viral acceleration',
@@ -54,7 +54,7 @@ export const STATS: StatData[] = [
 
 export const TYPEWRITER_PHRASES: string[] = [
   'Making Tools',
-  'Automation Engineer',
+  'Automation Maker',
   'AI Enthusiast',
   'Faith-Driven Builder',
   'Code & Coffee',
